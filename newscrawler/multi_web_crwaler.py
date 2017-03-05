@@ -42,7 +42,7 @@ def get_text(URL, output_file):
 # 메인함수
 def main(argv):
     if len(argv) != 4:
-        print("python [모듈이름] [키워드] [가져올 페이지 숫자] [결과 파일명]")
+        print("python3 [모듈이름] [키워드] [가져올 페이지 숫자] [결과 파일명]")
         return
     keyword = argv[1]
     page_num = int(argv[2])
