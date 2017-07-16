@@ -11,16 +11,19 @@ import tensorflow as tf
 import numpy
 import matplotlib.pyplot as plt
 import re
+import random
 rng = numpy.random
 
 # data structure
 FORIGN_IDX = 1
 UPDOWN_IDX = 4
-CHK_DATE_SIZE = 4
+
+# number of using privous data
+CHK_DATE_SIZE = 8
 
 # Parameters
 learning_rate = 0.01
-training_epochs = 1000
+training_epochs = 500
 display_step = 50
 
 # Training Data
@@ -78,21 +81,24 @@ def get_arryed_data(input, start, size):
     return res
 
 TRAINING_SIZE = int(n_samples * 0.75)
-TESTING_SIZE = n_samples - TRAINING_SIZE
+TESTING_SIZE = n_samples - TRAINING_SIZE + CHK_DATE_SIZE
 train_X = get_arryed_data(forign_buy, 0,  TRAINING_SIZE)
 #del forign_buy[0:TRAINING_SIZE]
-test_X = get_arryed_data(forign_buy, TRAINING_SIZE,  TESTING_SIZE)
+test_X = get_arryed_data(forign_buy, TRAINING_SIZE - CHK_DATE_SIZE,  TESTING_SIZE)
 
-updown_ratio = numpy.delete(updown_ratio, 0, axis = 0)
+updown_ratio = updown_ratio[CHK_DATE_SIZE:]
+#updown_ratio = numpy.delete(updown_ratio, CHK_DATE_SIZE, axis = 0)
 train_Y = updown_ratio[0:TRAINING_SIZE]
 #del updown_ratio[0:TRAINING_SIZE]
-test_Y = updown_ratio[TRAINING_SIZE:]
-'''
+test_Y = updown_ratio[TRAINING_SIZE - CHK_DATE_SIZE:]
+
+# '''
 print(train_X)
 print(train_Y)
 print(test_X)
 print(test_Y)
-exit()'''
+# exit()
+# '''
 #train_X = numpy.array([[]])
 '''
 train_X = []
@@ -123,7 +129,8 @@ Y = tf.placeholder("float64")
 # Set model weights
 #W = tf.Variable(tf.zeros([ CHK_DATE_SIZE, 1], dtype=tf.float64), name = "weight", dtype = tf.float64)
 
-W = tf.Variable([[rng.randn()],[rng.randn()], [rng.randn()], [rng.randn()]], name="weight",  dtype=tf.float64)
+W = tf.Variable(numpy.ones((CHK_DATE_SIZE, 1)), name="weight",  dtype=tf.float64)
+# W = tf.Variable([[rng.randn()],[rng.randn()], [rng.randn()], [rng.randn()]], name="weight",  dtype=tf.float64)
 #W = tf.Variable([[rng.randn()],[rng.randn()]], name="weight",  dtype=tf.float64)
 
 b = tf.Variable(rng.randn(), name="bias", dtype = tf.float64)
@@ -133,7 +140,7 @@ pred = tf.add(tf.matmul(X, W), b)
 #pred = tf.add(tf.multiply(X, W), b)
 
 # Mean squared error
-cost = tf.reduce_sum(tf.pow(pred-Y, 2))/(2*n_samples)
+cost = tf.reduce_sum(tf.pow(pred-Y, 2))/(2* TRAINING_SIZE) #n_samples)
 # Gradient descent
 optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost)
 
@@ -162,6 +169,66 @@ with tf.Session() as sess:
                 "W=", sess.run(W), "b=", sess.run(b))
             #print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(c), \
             #    "W=", sess.run(W), "b=", sess.run(b))
+
+# testing
+    print("start testing")
+    predicted = []
+
+    money = 1000
+    depot_only = money
+    random_result = money
+    owned = 0
+    owned_rand = 0
+    for i in range(TESTING_SIZE -1):
+        x = test_X[i:i+1,]
+        y = test_Y[i]
+        # print(x)
+        # print(y)
+        res = sess.run(pred, feed_dict={X: x, Y: y})
+        updown_pred = res[0][0]
+        if (updown_pred > 0.5) and (0 == owned):
+            owned = money
+            money -= money * 0.0033 # charge and tax
+
+        elif (updown_pred < -0.5) and ( 0 != owned):
+            owned = 0
+            money -= money * 0.0033 # charge and tax
+
+        if 0 != owned :
+            money *= (1 + y /100)
+
+        depot_only *= (1 + y / 100)
+
+        ranv = random.random()
+        if (ranv > 0.5) and (0 == owned_rand):
+            owned_rand = random_result
+            random_result -= random_result * 0.0033
+        elif (ranv <= 0.5) and (0 != owned_rand):
+            owned_rand = 0;
+            random_result -= random_result * 0.0033
+
+        if 0 != owned_rand:
+            random_result *= ( 1 + y/100)
+
+        predicted.append(updown_pred)
+        # _, c = sess.run([optimizer, cost], feed_dict={X: x, Y: y})
+        print("Pred: ", updown_pred, ", actual: ", y,
+              ", money: ", money, ", depot: ", depot_only, ", rand: ", ranv, ", rand res: ", random_result)
+
+    day = [xx for xx in range(TESTING_SIZE -1)]
+
+    print(day)
+    print(predicted)
+
+    # Graphic display
+    plt.plot(day, test_Y[:TESTING_SIZE-1], 'ro', label='Original data')
+    plt.plot(day, predicted, 'bo', label='predicted data')
+
+    #plt.plot(day, sess.run(W) * train_X + sess.run(b), label='Fitted line')
+    plt.legend()
+    plt.show()
+
+
 
 '''
     c = sess.run(cost, feed_dict={X: train_X, Y: train_Y})
