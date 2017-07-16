@@ -19,7 +19,6 @@ mpNum = 2
 
 f = open("forigndata.txt", 'w')
 
-
 for page in range(1, mpNum+1):
   print (str(page) )
   url = 'http://finance.daum.net/item/foreign_yyyymmdd.daum?page=' + str(page) + '&code=' + stockItem
@@ -42,8 +41,8 @@ for page in range(1, mpNum+1):
      organ_buy_amount = classnums[3].text
      endprice = classnums[4].text
      updownration = classnums[6].text
-     data = date1 + " | " + forign_buy_amount + " | " + organ_buy_amount + \
-            " | " + endprice + " | " + updownration + "\n"
+     data = date1 + "  " + forign_buy_amount + "  " + organ_buy_amount + \
+            "  " + endprice + "  " + updownration + "\n"
      f.write(data)
      print("data: ", date1, "forign: ", forign_buy_amount, "organ: ", organ_buy_amount, "price: ", endprice, "scale: ", updownration)
 
